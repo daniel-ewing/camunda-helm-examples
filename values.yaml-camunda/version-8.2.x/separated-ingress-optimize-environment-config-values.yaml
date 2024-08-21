@@ -1,0 +1,184 @@
+# Chart values for the Camunda Platform 8 Helm chart in separate ingress setup. 
+# Note: you can change the global.image.tag version value as needed.
+global:
+  image:
+    tag: latest
+
+  identity:
+    auth:
+      publicIssuerUrl: "https://keycloak.c8.dev.local/auth/realms/camunda-platform"
+      connectors:
+        existingSecret: SetThisToMakeHelmUpgradesEasy
+      operate:
+        existingSecret: SetThisToMakeHelmUpgradesEasy
+        redirectUrl: "https://operate.c8.dev.local"
+      tasklist:
+        existingSecret: SetThisToMakeHelmUpgradesEasy
+        redirectUrl: "https://tasklist.c8.dev.local"
+      optimize:
+        existingSecret: SetThisToMakeHelmUpgradesEasy
+        redirectUrl: "https://optimize.c8.dev.local"
+      webModeler:
+        redirectUrl: "https://modeler.c8.dev.local"
+      zeebe:
+        existingSecret: SetThisToMakeHelmUpgradesEasy
+
+# Reduce Zeebe and Gateway replicas and resources to make it run locally
+zeebe:
+  clusterSize: 1
+  partitionCount: 1
+  replicationFactor: 1
+  pvcSize: 8Gi
+ 
+zeebe-gateway:
+  replicas: 1
+  env:
+    - name: ZEEBE_GATEWAY_SECURITY_AUTHENTICATION_MODE
+      value: none
+  ingress:
+    enabled: true
+    host: "zeebe.c8.dev.local"
+    tls:
+      enabled: true
+      secretName: "dev-c8-separated"
+ 
+operate:
+  ingress:
+    enabled: true
+    host: "operate.c8.dev.local"
+    tls:
+      enabled: true
+      secretName: "dev-c8-separated"
+ 
+tasklist:
+  ingress:
+    enabled: true
+    host: "tasklist.c8.dev.local"
+    tls:
+      enabled: true
+      secretName: "dev-c8-separated"
+ 
+optimize:
+  extraVolumes:
+    - name: environment-config
+      configMap:
+        name: optimize-environment-config
+        defaultMode: 0777
+  extraVolumeMounts:
+    - name: environment-config
+      mountPath: /optimize/config/environment-config.yaml
+      subPath: environment-config.yaml
+  ingress:
+    enabled: true
+    host: "optimize.c8.dev.local"
+    tls:
+      enabled: true
+      secretName: "dev-c8-separated"
+ 
+identity:
+  fullURL: "https://identity.c8.dev.local"
+  ingress:
+    enabled: true
+    host: "identity.c8.dev.local"
+    tls:
+      enabled: true
+      secretName: "dev-c8-separated"
+  keycloak:
+    postgresql:
+      auth:
+        password: SetThisToMakeLoginEasy
+        postgresPassword: SetThisToMakeLoginEasy
+    extraEnvVars:
+      - name: KEYCLOAK_PROXY_ADDRESS_FORWARDING
+        value: "true"
+    ingress:
+      enabled: true
+      hostname: "keycloak.c8.dev.local"
+      tls:
+        enabled: true
+        secretName: "dev-c8-separated"
+    auth:
+      adminPassword: SetThisToMakeLoginEasy
+      managementPassword: SetThisToMakeLoginEasy
+
+webModeler:
+  enabled: true
+  image:
+    tag: 8.2.3
+    pullSecrets:
+      - name: dev-c8-registry
+  restapi:
+    mail:
+      fromAddress: "no-reply@camunda.com"
+    env:
+##      Configuration for DEBUG logging:
+#      - name: LOGGING_LEVEL_IO_GRPC
+#        value: TRACE
+      - name: ZEEBE_CA_CERTIFICATE_PATH
+        value: "/home/node/dev.c8.separated.crt"
+    extraVolumes:
+      - name: dev-c8-separated
+        secret:
+          secretName: dev-c8-separated
+    extraVolumeMounts:
+      - name: dev-c8-separated
+        mountPath: "/home/node/dev.c8.separated.crt"
+        subPath: tls.crt
+  webapp:
+    env:
+      - name: ZEEBE_CLIENT_SSL_ROOT_CERTS_PATH
+        value: "/home/node/dev.c8.separated.crt"
+    extraVolumes:
+      - name: dev-c8-separated
+        secret:
+          secretName: dev-c8-separated
+    extraVolumeMounts:
+      - name: dev-c8-separated
+        mountPath: "/home/node/dev.c8.separated.crt"
+        subPath: tls.crt
+  ingress:
+    enabled: true
+    webapp:
+      host: "modeler.c8.dev.local"
+      tls:
+        enabled: true
+        secretName: "dev-c8-separated"
+    websockets:
+      host: "websockets.c8.dev.local"
+      tls:
+        enabled: true
+        secretName: "dev-c8-separated"
+
+postgresql:
+  enabled: true
+  auth:
+    password: SetThisToMakeLoginEasy
+    postgresPassword: SetThisToMakeLoginEasy
+
+connectors:
+  ingress:
+    enabled: true
+    host: "connectors.c8.dev.local"
+    tls:
+      enabled: true
+      secretName: "dev-c8-separated"
+
+# Reduce Elasticsearch replicas and resources to make it run locally
+elasticsearch:
+#  imageTag: 7.17.3  # Uncomment this line and set a value if you want to override the default chart value.
+  replicas: 1
+  volumeClaimTemplate:
+    accessModes: [ "ReadWriteOnce" ]
+    storageClassName: "standard"
+    resources:
+      requests:
+        storage: 8Gi
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+  minimumMasterNodes: 1
+  clusterHealthCheckParams: "wait_for_status=yellow&timeout=1s"

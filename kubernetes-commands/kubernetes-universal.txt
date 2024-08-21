@@ -1,0 +1,154 @@
+# Get all running kubernetes service information
+kubectl get all --all-namespaces
+
+# Get status:
+kubectl get pods
+
+# Check on messages from the scheduler:
+kubectl describe pods <pod-name>
+
+# Get pod logs:
+kubectl logs <pod-name>
+
+# Get the CLI of a pod:
+kubectl exec --stdin --tty <pod-name> -- /bin/bash
+
+# Get the env vars of a pod:
+kubectl exec <pod-name> -- printenv
+
+# Copy a local file into a pod->container:
+kubectl cp /<path-to-file>/<file-name> <pod-name>:<fully-qualified-file-name> -c <container-name>
+
+# Create a resource from a file (ConfigMap, PVC, etc.):
+kubectl create -f file.yaml
+
+# Get deployments and statefulsets:
+kubectl get deployments
+kubectl get statefulsets
+
+# Scale a deployment:
+kubectl scale deploy <deployment> --replicas=<n>
+
+kubectl scale deploy dev-identity --replicas=0
+kubectl scale deploy dev-optimize --replicas=0
+kubectl scale deploy dev-operate --replicas=0
+kubectl scale deploy dev-tasklist --replicas=0
+kubectl scale deploy dev-zeebe-gateway --replicas=0
+kubectl scale statefulsets dev-zeebe --replicas=0
+kubectl scale statefulsets dev-elasticsearch-master --replicas=0
+
+kubectl scale deploy dev-identity --replicas=0
+kubectl scale deploy dev-identity --replicas=1
+kubectl scale deploy dev-connectors --replicas=0
+kubectl scale deploy dev-connectors --replicas=1
+kubectl scale deploy dev-optimize --replicas=1
+kubectl scale deploy dev-operate --replicas=1
+kubectl scale deploy dev-tasklist --replicas=1
+kubectl scale deploy dev-zeebe-gateway --replicas=1
+kubectl scale statefulsets dev-zeebe --replicas=0
+kubectl scale statefulsets dev-zeebe --replicas=1
+kubectl scale statefulsets dev-elasticsearch-master --replicas=1
+
+# Scale a replica set - a set of pod(s):
+kubectl scale rs/<replicaSet> --replicas=<n>
+
+# Get all versions of a chart:
+helm search repo camunda/camunda-platform --versions
+helm search repo ingress-nginx/ingress-nginx --versions
+helm search repo external-dns/external-dns --versions
+helm search repo cert-manager/cert-manager --versions
+
+# Get the complete values.yaml for a specific version of a helm chart:
+helm show values camunda/camunda-platform --version 8.0.7 >~/temp/values-8.0.7.yaml
+helm show values camunda/camunda-platform --version 8.1.27 >~/temp/values-8.1.27.yaml
+helm show values camunda/camunda-platform --version 8.2.31 >~/temp/values-8.2.31.yaml
+helm show values camunda/camunda-platform --version 8.3.16 >~/temp/values-8.3.16.yaml
+helm show values camunda/camunda-platform --version 9.0.2 >~/temp/values-9.0.2.yaml
+helm show values camunda/camunda-platform --version 9.1.2 >~/temp/values-9.1.2.yaml
+helm show values camunda/camunda-platform --version 9.2.0 >~/temp/values-9.2.0.yaml
+helm show values camunda/camunda-platform --version 9.3.9 >~/temp/values-9.3.9.yaml
+helm show values camunda/camunda-platform --version 10.0.5 >~/temp/values-10.0.5.yaml
+helm show values camunda/camunda-platform --version 10.1.1 >~/temp/values-10.1.1.yaml
+helm show values camunda/camunda-platform --version 10.2.1 >~/temp/values-10.2.1.yaml
+helm show values camunda/camunda-platform --version 10.3.2 >~/temp/values-10.3.2.yaml
+
+helm show values bitnami/postgresql >~/temp/postgresql-values.yaml
+
+# Debug values.yaml issues:
+helm install dev-debug camunda/camunda-platform \
+                  -f values.yaml \
+                 --version 8.2.5 \
+                 --dry-run --debug \
+                 >~/temp/dev-debug.log
+
+# Get the generated configMap from a given template based on the supplied values.yaml:
+helm template dev camunda/camunda-platform \
+                  -f separated-ingress-values.yaml \
+                  --version 10.0.2 \
+                  --show-only templates/identity/configmap.yaml
+
+# Get deployed chart version:
+helm list <--namespace default>
+
+# Secret management:
+kubectl create secret generic dev-c8-separated \
+                              --from-file=tls.crt=/home/administrator/software/camunda/camunda-platform-8/certificates/dev.c8.separate.crt \
+                              --from-file=tls.key=/home/administrator/software/camunda/camunda-platform-8/certificates/dev.c8.separate.key
+
+
+kubectl create secret generic dev-c8-combined \
+                              --from-file=tls.crt=/software/camunda/camunda-platform-8/certificates/dev.c8.combined.crt \
+                              --from-file=tls.key=/software/camunda/camunda-platform-8/certificates/dev.c8.combined.key
+
+
+kubectl create secret docker-registry dev-c8-registry \
+                                      --docker-server=registry.camunda.cloud \
+                                      --docker-username=name \
+                                      --docker-password='' \
+                                      --docker-email=name@domain.com
+
+
+kubectl create secret generic dev-identity-secrets \
+                              --from-literal=operate-secret=SetThisToMakeUpgradeEasy \
+                              --from-literal=tasklist-secret=SetThisToMakeUpgradeEasy \
+                              --from-literal=optimize-secret=SetThisToMakeUpgradeEasy \
+                              --from-literal=connectors-secret=SetThisToMakeUpgradeEasy
+
+
+kubectl create secret generic dev-keycloak-secrets \
+                              --from-literal=admin-password=SetThisToMakeLoginEasy \
+                              --from-literal=management-password=SetThisToMakeLoginEasy \
+
+
+kubectl create secret generic dev-postgresql-secrets \
+                              --from-literal=password=SetThisToMakeLoginEasy \
+                              --from-literal=postgres-password=SetThisToMakeLoginEasy
+
+
+kubectl create secret generic dev-modeler-postgresql-secrets \
+                              --from-literal=password=SetThisToMakeLoginEasy \
+                              --from-literal=postgres-password=SetThisToMakeLoginEasy
+
+
+
+kubectl create secret generic dev-connectors-identity-secret \
+                              --from-literal=connectors-secret=SetThisToMakeUpgradeEasy
+
+
+kubectl create secret generic dev-postgresql-web-modeler \
+                              --from-literal=password=SetThisToMakeLoginEasy \
+                              --from-literal=postgres-password=SetThisToMakeLoginEasy
+
+
+kubectl delete secret dev-c8-separated
+kubectl delete secret dev-c8-registry
+kubectl delete secret dev-identity-secrets
+kubectl delete secret dev-keycloak-secrets
+kubectl delete secret dev-postgresql-secrets
+kubectl delete secret dev-modeler-postgresql-secrets
+kubectl delete secret dev-connectors-identity-secret
+kubectl delete secret dev-postgresql-web-modeler
+
+
+
+

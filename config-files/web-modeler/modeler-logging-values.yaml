@@ -1,0 +1,29 @@
+webModeler:
+  restapi:
+    extraConfiguration:
+      log4j2.xml: |-
+        <configuration>
+            <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+            <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
+            <root level="INFO">
+                <appender-ref ref="CONSOLE" />
+            </root>
+            <logger name="org.springframework.web" level="DEBUG"/>
+            <logger name="io.camunda.modeler" level="DEBUG"/>
+            <logger name="io.grpc" level="TRACE"/>
+        </configuration>
+    env:
+      - name: LOGGING_CONFIG
+        value: /home/runner/config/log4j2.xml
+  extraConfiguration:
+    log4j2.xml: |-
+      <configuration>
+          <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+          <include resource="org/springframework/boot/logging/logback/console-appender.xml" />
+          <root level="INFO">
+              <appender-ref ref="CONSOLE" />
+          </root>
+          <logger name="org.springframework.web" level="DEBUG"/>
+          <logger name="io.camunda.modeler" level="DEBUG"/>
+          <logger name="io.grpc" level="TRACE"/>
+      </configuration>

@@ -1,0 +1,222 @@
+# Chart values for the Camunda Platform 8 Helm chart in separate ingress setup. 
+# Note: you can change the global.image.tag version value as needed.
+global:
+  image:
+    tag: 8.4.1
+
+  identity:
+    auth:
+      publicIssuerUrl: "https://keycloak.c8.dev.local/auth/realms/camunda-platform"
+      connectors:
+        existingSecret: SetThisToMakeHelmUpgradesEasy
+      operate:
+        existingSecret: SetThisToMakeHelmUpgradesEasy
+        redirectUrl: "https://operate.c8.dev.local"
+      tasklist:
+        existingSecret: SetThisToMakeHelmUpgradesEasy
+        redirectUrl: "https://tasklist.c8.dev.local"
+      optimize:
+        existingSecret: SetThisToMakeHelmUpgradesEasy
+        redirectUrl: "https://optimize.c8.dev.local"
+      webModeler:
+        redirectUrl: "https://modeler.c8.dev.local"
+      console:
+        existingSecret: SetThisToMakeHelmUpgradesEasy
+        redirectUrl:  "https://console.c8.dev.local"
+      zeebe:
+        existingSecret: SetThisToMakeHelmUpgradesEasy
+
+# Reduce Zeebe and Gateway replicas and resources to make it run locally
+zeebe:
+  clusterSize: 1
+  partitionCount: 1
+  replicationFactor: 1
+  pvcSize: 8Gi
+ 
+zeebe-gateway:
+  replicas: 1
+#  env:
+#    - name: ZEEBE_GATEWAY_SECURITY_AUTHENTICATION_MODE
+#      value: none
+  ingress:
+    enabled: true
+    host: "zeebe.c8.dev.local"
+    tls:
+      enabled: true
+      secretName: "dev-c8-separated"
+ 
+operate:
+  ingress:
+    enabled: true
+    host: "operate.c8.dev.local"
+    tls:
+      enabled: true
+      secretName: "dev-c8-separated"
+ 
+tasklist:
+  ingress:
+    enabled: true
+    host: "tasklist.c8.dev.local"
+    tls:
+      enabled: true
+      secretName: "dev-c8-separated"
+ 
+optimize:
+  ingress:
+    enabled: true
+    host: "optimize.c8.dev.local"
+    tls:
+      enabled: true
+      secretName: "dev-c8-separated"
+ 
+identity:
+  fullURL: "https://identity.c8.dev.local"
+  ingress:
+    enabled: true
+    host: "identity.c8.dev.local"
+    tls:
+      enabled: true
+      secretName: "dev-c8-separated"
+  postgresql:
+    enabled: true
+    auth:
+      password: SetThisToMakeLoginEasy
+      postgresPassword: SetThisToMakeLoginEasy
+  keycloak:
+    postgresql:
+      auth:
+        password: SetThisToMakeLoginEasy
+        postgresPassword: SetThisToMakeLoginEasy
+    extraEnvVars:
+      - name: KEYCLOAK_PROXY_ADDRESS_FORWARDING
+        value: "true"
+    ingress:
+      enabled: true
+      hostname: "keycloak.c8.dev.local"
+      tls: true
+      extraTls:
+        - secretName: dev-c8-separated
+          hosts:
+            - keycloak.c8.dev.local
+    auth:
+      adminPassword: SetThisToMakeLoginEasy
+      managementPassword: SetThisToMakeLoginEasy
+
+webModeler:
+  enabled: true
+  image:
+#    tag: 8.4.1 # Uncomment this line and set a value if you want to override the default chart value.
+    pullSecrets:
+      - name: dev-c8-registry
+  restapi:
+    mail:
+      fromAddress: "no-reply@camunda.com"
+    env:
+#      - name: ZEEBE_INSECURE_CONNECTION
+#        value: "false"
+      - name: ZEEBE_CA_CERTIFICATE_PATH
+        value: "/home/runner/dev.c8.separated.crt"
+##      Configuration for DEBUG logging:
+#      - name: LOGGING_LEVEL_IO_GRPC
+#        value: TRACE
+#      - name: LOGGING_LEVEL_IO_CAMUNDA_MODELER
+#        value: DEBUG
+    extraVolumes:
+      - name: dev-c8-separated
+        secret:
+          secretName: dev-c8-separated
+    extraVolumeMounts:
+      - name: dev-c8-separated
+        mountPath: "/home/runner/dev.c8.separated.crt"
+        subPath: tls.crt
+  webapp:
+    env:
+#      - name: ZEEBE_SECURE_CONNECTION
+#        value: "true"
+      - name: ZEEBE_CLIENT_SSL_ROOT_CERTS_PATH
+        value: "/home/runner/dev.c8.separated.crt"
+    extraVolumes:
+      - name: dev-c8-separated
+        secret:
+          secretName: dev-c8-separated
+    extraVolumeMounts:
+      - name: dev-c8-separated
+        mountPath: "/home/runner/dev.c8.separated.crt"
+        subPath: tls.crt
+  ingress:
+    enabled: true
+    webapp:
+      host: "modeler.c8.dev.local"
+      tls:
+        enabled: true
+        secretName: "dev-c8-separated"
+    websockets:
+      host: "websockets.c8.dev.local"
+      tls:
+        enabled: true
+        secretName: "dev-c8-separated"
+
+postgresql:
+  enabled: true
+  auth:
+    password: SetThisToMakeLoginEasy
+    postgresPassword: SetThisToMakeLoginEasy
+
+connectors:
+  ingress:
+    enabled: true
+    host: "connectors.c8.dev.local"
+    tls:
+      enabled: true
+      secretName: "dev-c8-separated"
+
+#
+# WARNING: Console is currently under development and should not be used yet.
+#
+console:
+  enabled: false
+
+# Reduce Elasticsearch replicas and resources to make it run locally
+elasticsearch:
+  image: # Uncomment these lines and set a value if you want to override the default chart value.
+    tag: 8.9.2 # Uncomment these lines and set a value if you want to override the default chart value.
+  master:
+    replicaCount: 1
+    persistence:
+      size: 8Gi
+      env:
+        - name: BITNAMI_DEBUG
+          value: 'false'
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: ELASTICSEARCH_IS_DEDICATED_NODE
+          value: 'no'
+        - name: ELASTICSEARCH_NODE_ROLES
+          value: master
+        - name: ELASTICSEARCH_TRANSPORT_PORT_NUMBER
+          value: '9300'
+        - name: ELASTICSEARCH_HTTP_PORT_NUMBER
+          value: '9200'
+        - name: ELASTICSEARCH_CLUSTER_NAME
+          value: elastic
+        - name: ELASTICSEARCH_CLUSTER_HOSTS
+          value: >-
+            camunda-platform-elasticsearch-master-hl.optima-uwcm.svc.cluster.local,
+        - name: ELASTICSEARCH_TOTAL_NODES
+          value: '2'
+        - name: ELASTICSEARCH_CLUSTER_MASTER_HOSTS
+          value: >-
+            camunda-platform-elasticsearch-master-0
+            camunda-platform-elasticsearch-master-1
+        - name: ELASTICSEARCH_MINIMUM_MASTER_NODES
+          value: '2'
+        - name: ELASTICSEARCH_ADVERTISED_HOSTNAME
+          value: >-
+            $(MY_POD_NAME).camunda-platform-elasticsearch-master-hl.optima-uwcm.svc.cluster.local
+        - name: ELASTICSEARCH_HEAP_SIZE
+          value: 1024m
+        - name: ELASTICSEARCH_ENABLE_REST_TLS
+          value: 'false'

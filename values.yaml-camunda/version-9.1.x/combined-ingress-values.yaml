@@ -1,0 +1,149 @@
+# Chart values for the Camunda Platform 8 Helm chart in combined ingress setup.
+# You can change the global.image.tag version value as needed, just don't delete comment that follows it.
+global:
+#  image:
+#    tag:
+
+  ingress:
+    enabled: true
+    host: "c8.dev.local"
+    tls:
+      enabled: true
+      secretName: "dev-c8-combined"
+
+  identity:
+    auth:
+      publicIssuerUrl: "https://c8.dev.local/auth/realms/camunda-platform"
+      connectors:
+        existingSecret: SetThisToMakeHelmUpgradesEasy
+      operate:
+        existingSecret: SetThisToMakeHelmUpgradesEasy
+        redirectUrl: "https://c8.dev.local/operate"
+      tasklist:
+        existingSecret: SetThisToMakeHelmUpgradesEasy
+        redirectUrl: "https://c8.dev.local/tasklist"
+      optimize:
+        existingSecret: SetThisToMakeHelmUpgradesEasy
+        redirectUrl: "https://c8.dev.local/optimize"
+      webModeler:
+        redirectUrl: "https://c8.dev.local/modeler"
+      console:
+        existingSecret: SetThisToMakeHelmUpgradesEasy
+        redirectUrl:  "https://c8.dev.local/console"
+      zeebe:
+        existingSecret: SetThisToMakeHelmUpgradesEasy
+
+# Configure Zeebe and Gateway replicas and resources for local testing.
+zeebe:
+  clusterSize: 1
+  partitionCount: 1
+  replicationFactor: 1
+  pvcSize: 8Gi
+
+zeebe-gateway:
+  replicas: 1
+#  env:
+#    - name: ZEEBE_GATEWAY_SECURITY_AUTHENTICATION_MODE
+#      value: none
+  ingress:
+    enabled: true
+    host: "zeebe.c8.dev.local"
+    tls:
+      enabled: true
+      secretName: "dev-c8-combined"
+
+operate:
+  contextPath: "/operate"
+
+tasklist:
+  contextPath: "/tasklist"
+
+optimize:
+  contextPath: "/optimize"
+
+identity:
+  fullURL: "https://c8.dev.local/identity"
+  contextPath: "/identity"
+  postgresql:
+    enabled: true
+    auth:
+      password: SetThisToMakeLoginEasy
+      postgresPassword: SetThisToMakeLoginEasy
+  keycloak:
+    postgresql:
+      auth:
+        password: SetThisToMakeLoginEasy
+        postgresPassword: SetThisToMakeLoginEasy
+    extraEnvVars:
+      - name: KEYCLOAK_PROXY_ADDRESS_FORWARDING
+        value: "true"
+    auth:
+      adminPassword: SetThisToMakeLoginEasy
+      managementPassword: SetThisToMakeLoginEasy
+
+webModeler:
+  enabled: true
+  image:
+#    tag: 8.4.1 # Uncomment this line and set a value if you want to override the default chart value.
+    pullSecrets:
+      - name: dev-c8-registry
+  contextPath: "/modeler"
+  restapi:
+    mail:
+      fromAddress: "no-reply@camunda.com"
+    env:
+#      - name: ZEEBE_INSECURE_CONNECTION
+#        value: "false"
+      - name: ZEEBE_CA_CERTIFICATE_PATH
+        value: "/home/runner/dev.c8.combined.crt"
+##      Configuration for DEBUG logging:
+#      - name: LOGGING_LEVEL_IO_GRPC
+#        value: TRACE
+#      - name: LOGGING_LEVEL_IO_CAMUNDA_MODELER
+#        value: DEBUG
+    extraVolumes:
+      - name: dev-c8-combined
+        secret:
+          secretName: dev-c8-combined
+    extraVolumeMounts:
+      - name: dev-c8-combined
+        mountPath: "/home/runner/dev.c8.combined.crt"
+        subPath: tls.crt
+  webapp:
+    env:
+#      - name: ZEEBE_SECURE_CONNECTION
+#        value: "true"
+      - name: ZEEBE_CLIENT_SSL_ROOT_CERTS_PATH
+        value: "/home/runner/dev.c8.combined.crt"
+    extraVolumes:
+      - name: dev-c8-combined
+        secret:
+          secretName: dev-c8-combined
+    extraVolumeMounts:
+      - name: dev-c8-combined
+        mountPath: "/home/runner/dev.c8.combined.crt"
+        subPath: tls.crt
+
+postgresql:
+  enabled: true
+  auth:
+    password: SetThisToMakeLoginEasy
+    postgresPassword: SetThisToMakeLoginEasy
+
+connectors:
+  contextPath: "/connectors"
+
+#
+# WARNING: Console is currently under development and should not be used yet.
+#
+console:
+  enabled: false
+
+# Reduce Elasticsearch replicas and resources to make it run locally
+elasticsearch:
+  image: # Uncomment these lines and set a value if you want to override the default chart value.
+    tag: 8.12.1 # Uncomment these lines and set a value if you want to override the default chart value.
+  master:
+    replicaCount: 1
+    persistence:
+      size: 8Gi

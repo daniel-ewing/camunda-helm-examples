@@ -1,0 +1,32 @@
+# One time only
+helm repo add opensearch https://opensearch-project.github.io/helm-charts/
+
+# Install opensearch instance (the opensearch-dashboards deployment is an optional kibana-like gui).
+cd /home/administrator/software/camunda/camunda-platform-8/daniel-ewing-camunda-platform-helm/opensearch
+helm upgrade --install opensearch opensearch/opensearch \
+                                --create-namespace \
+                                --namespace opensearch \
+                                -f opensearch-values.yaml
+
+helm upgrade --install opensearch-dashboards opensearch/opensearch-dashboards \
+                                           --create-namespace \
+                                           --namespace opensearch \
+                                           -f opensearch-dashboard-values.yaml
+
+export POD_NAME=$(kubectl get pods --namespace opensearch -l "app=opensearch-dashboards,release=opensearch-dashboards" -o jsonpath="{.items[0].metadata.name}")
+export CONTAINER_PORT=$(kubectl get pod --namespace opensearch $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+echo "Visit http://127.0.0.1:8080 to use your application"
+kubectl --namespace opensearch port-forward $POD_NAME 8080:$CONTAINER_PORT
+
+# Use a new tab to port forward to the opensearch instance
+kubectl --namespace opensearch port-forward svc/opensearch-cluster-master 9200:9200 &
+
+
+# Delete opensearch instance and data for reinstall
+kubens opensearch
+kubectl scale deploy opensearch-dashboards --replicas=0
+kubectl scale statefulsets opensearch-cluster-master --replicas=0
+helm delete opensearch
+helm delete opensearch-dashboards
+kubectl delete persistentvolumeclaim --all
+
